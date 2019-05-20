@@ -24,11 +24,17 @@ Mapper File Example:
 This file is used to gather variables from source file, filter directories and files to search and configure the output file name and path, it uses regular expressions fo search content and filter.
 
 the "SearchLocation" can be:
+
 0 - Content
+
 1 - FileName
+
 2 - FileDirectory
+
 3 - FilePath
+
 4 - Literal (in this case the value of SearchPatern will be used as literal)
+
 
 the "OutputPatern" points to a .txt contaning the output patern with the variables notation.
 
@@ -62,9 +68,13 @@ Pattern file example:
 Variables can be used like this:
 
 <%name%> = variable (simple variable replace)
+
 <@name@> = repeat for each match of variable in source file (begin of block) 
+
 <!name!> = value of current item in loop
+
 </@name@> = repeat for each match of variable in source file (end of block)
+
 
 ```
 class <%class%>
