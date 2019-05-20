@@ -32,6 +32,7 @@ the "SearchLocation" can be:
 
 the "OutputPatern" points to a .txt contaning the output patern with the variables notation.
 
+```
 {
     "Name": "test",
     "Variables": [
@@ -54,6 +55,7 @@ the "OutputPatern" points to a .txt contaning the output patern with the variabl
     "DirExclude": "",
     "FileExclude": "test"
 }
+```
 
 Pattern file example:
 
@@ -64,6 +66,7 @@ Variables can be used like this:
 <!name!> = value of current item in loop
 </@name@> = repeat for each match of variable in source file (end of block)
 
+```
 class <%class%>
 {
     <@method@> //This block will repeat for each occourence of a pattern on source file.
@@ -73,6 +76,6 @@ class <%class%>
     }
     </@method@>
 }
-
+```
 
 
