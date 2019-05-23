@@ -77,11 +77,22 @@ namespace LaForgeFileMapper
                                 {
                                     inputArgs.Add("INITPATH", FileMapper.workDirectory);
                                 }
-                    
+
                             }
                             else if (arg.Equals("--replace", StringComparison.InvariantCultureIgnoreCase))
                             {
                                 inputArgs.Add("REPLACE", "");
+                            }
+                            else if (arg.Equals("--open", StringComparison.InvariantCultureIgnoreCase))
+                            {
+                                if (argsList.Count > argsList.IndexOf(arg) + 1 && !argsList[argsList.IndexOf(arg) + 1].StartsWith("-"))
+                                {
+                                    inputArgs.Add("OPEN", argsList[argsList.IndexOf(arg) + 1]);
+                                }
+                                else
+                                {
+                                    inputArgs.Add("OPEN", "");
+                                }
                             }
                             else if (arg.Equals("--help", StringComparison.InvariantCultureIgnoreCase) ||
                                      arg.Equals("-h", StringComparison.InvariantCultureIgnoreCase))
@@ -143,6 +154,10 @@ namespace LaForgeFileMapper
                         else if (inputArgs.ContainsKey("ENV"))
                         {
                             Console.WriteLine("Current working directory: " + FileMapper.currentDirectory);
+                        }
+                        else if (inputArgs.ContainsKey("OPEN"))
+                        {
+                            OpenFiles(inputArgs.GetValueOrDefault("OPEN"));
                         }
                         else if (inputArgs.ContainsKey("HELP"))
                         {
@@ -211,7 +226,7 @@ namespace LaForgeFileMapper
             StreamWriter patternFile;
             string patternFileName = "";
             string mapperFileName = "";
-
+            string pythonFileName = "";
             try
             {
 
@@ -219,21 +234,22 @@ namespace LaForgeFileMapper
                 {
                     mapperFileName = Path.GetFullPath(Path.Combine(FileMapper.currentDirectory, inputArgs.GetValueOrDefault("INITPATH"), inputArgs.GetValueOrDefault("INIT") + ".json"));
                     patternFileName = Path.GetFullPath(Path.Combine(FileMapper.currentDirectory, inputArgs.GetValueOrDefault("INITPATH"), inputArgs.GetValueOrDefault("INIT") + ".txt"));
+                    pythonFileName = Path.GetFullPath(Path.Combine(FileMapper.currentDirectory, inputArgs.GetValueOrDefault("INITPATH"), inputArgs.GetValueOrDefault("INIT") + ".py"));
                 }
                 else
                 {
                     mapperFileName = Path.Combine(inputArgs.GetValueOrDefault("INITPATH"), inputArgs.GetValueOrDefault("INIT") + ".json");
                     patternFileName = Path.Combine(inputArgs.GetValueOrDefault("INITPATH"), inputArgs.GetValueOrDefault("INIT") + ".txt");
+                    pythonFileName = Path.Combine(inputArgs.GetValueOrDefault("INITPATH"), inputArgs.GetValueOrDefault("INIT") + ".py");
                 }
 
                 file = new FilePatternMapper()
                 {
-                    Name = "Name",
+                    Name = inputArgs.GetValueOrDefault("INIT"),
                     DirFilter = "",
                     FileFilter = "",
                     OutputFileName = "",
                     OutputFolder = "",
-                    OutputPatern = inputArgs.GetValueOrDefault("INIT") + ".txt",
                     Variables = new List<FilePatternVariables>()
                     {
                         new FilePatternVariables()
@@ -251,7 +267,7 @@ namespace LaForgeFileMapper
                 patternFile.Dispose();
                 Console.WriteLine("Saved: " + inputArgs.GetValueOrDefault("INIT"));
 
-                Console.WriteLine("Do you want to open the patern file and mapper file? (y or n)");
+                Console.WriteLine("Do you want to open the generated files? (y or n)");
                 if (Console.ReadLine().Equals("Y", StringComparison.InvariantCultureIgnoreCase))
                 {
                     var p1 = new Process();
@@ -267,6 +283,13 @@ namespace LaForgeFileMapper
                         UseShellExecute = true
                     };
                     p2.Start();
+
+                    var p3 = new Process();
+                    p3.StartInfo = new ProcessStartInfo(@pythonFileName)
+                    {
+                        UseShellExecute = true
+                    };
+                    p3.Start();
                 }
 
             }
@@ -284,6 +307,7 @@ namespace LaForgeFileMapper
             int auxSearchLocation = 0;
             string patternFileName = "";
             string mapperFileName = "";
+            string pythonFileName = "";
 
             try
             {
@@ -292,21 +316,24 @@ namespace LaForgeFileMapper
                 {
                     mapperFileName = Path.GetFullPath(Path.Combine(FileMapper.currentDirectory, inputArgs.GetValueOrDefault("INITPATH"), inputArgs.GetValueOrDefault("INIT") + ".json"));
                     patternFileName = Path.GetFullPath(Path.Combine(FileMapper.currentDirectory, inputArgs.GetValueOrDefault("INITPATH"), inputArgs.GetValueOrDefault("INIT") + ".txt"));
+                    pythonFileName = Path.GetFullPath(Path.Combine(FileMapper.currentDirectory, inputArgs.GetValueOrDefault("INITPATH"), inputArgs.GetValueOrDefault("INIT") + ".py"));
+
                 }
                 else
                 {
-                    mapperFileName = Path.Combine(inputArgs.GetValueOrDefault("INITPATH") , inputArgs.GetValueOrDefault("INIT") + ".json");
-                    patternFileName = Path.Combine(inputArgs.GetValueOrDefault("INITPATH") , inputArgs.GetValueOrDefault("INIT") + ".txt");
+                    mapperFileName = Path.Combine(inputArgs.GetValueOrDefault("INITPATH"), inputArgs.GetValueOrDefault("INIT") + ".json");
+                    patternFileName = Path.Combine(inputArgs.GetValueOrDefault("INITPATH"), inputArgs.GetValueOrDefault("INIT") + ".txt");
+                    pythonFileName = Path.Combine(inputArgs.GetValueOrDefault("INITPATH"), inputArgs.GetValueOrDefault("INIT") + ".py");
+
                 }
 
                 file = new FilePatternMapper()
                 {
-                    Name = "Name",
+                    Name = inputArgs.GetValueOrDefault("INIT"),
                     DirFilter = "",
                     FileFilter = "",
                     OutputFileName = "",
                     OutputFolder = "",
-                    OutputPatern = inputArgs.GetValueOrDefault("INIT") + ".txt",
                     Variables = new List<FilePatternVariables>()
                 };
 
@@ -366,20 +393,105 @@ namespace LaForgeFileMapper
                 patternFile.Dispose();
                 Console.WriteLine("Saved: " + inputArgs.GetValueOrDefault("INIT"));
 
-                Console.WriteLine("Do you want to open the patern file? (y or n)");
+                Console.WriteLine("Do you want to open the patern files? (y or n)");
                 if (Console.ReadLine().Equals("Y", StringComparison.InvariantCultureIgnoreCase))
                 {
-                    var p = new Process();
-                    p.StartInfo = new ProcessStartInfo(@patternFileName)
+                    var p1 = new Process();
+                    p1.StartInfo = new ProcessStartInfo(@patternFileName)
                     {
                         UseShellExecute = true
                     };
-                    p.Start();
+                    p1.Start();
+
+                    var p2 = new Process();
+                    p2.StartInfo = new ProcessStartInfo(@mapperFileName)
+                    {
+                        UseShellExecute = true
+                    };
+                    p2.Start();
+
+                    var p3 = new Process();
+                    p3.StartInfo = new ProcessStartInfo(@pythonFileName)
+                    {
+                        UseShellExecute = true
+                    };
+                    p3.Start();
                 }
 
             }
             catch (Exception)
             {
+                throw;
+            }
+        }
+
+        private static void OpenFiles(string p_path)
+        {
+            StreamWriter file;
+
+            try
+            {
+                if (p_path.Equals(""))
+                {
+                    var p0 = new Process();
+                    p0.StartInfo = new ProcessStartInfo(FileMapper.workDirectory)
+                    {
+                        UseShellExecute = true
+                    };
+                    p0.Start();
+                }
+                else
+                {
+
+                    if (File.Exists(Path.Combine(FileMapper.workDirectory, p_path + ".json")))
+                    {
+
+                        var p1 = new Process();
+                        p1.StartInfo = new ProcessStartInfo(Path.Combine(FileMapper.workDirectory, p_path + ".json"))
+                        {
+                            UseShellExecute = true
+                        };
+                        p1.Start();
+
+                        if (!File.Exists(Path.Combine(FileMapper.workDirectory, p_path + ".txt")))
+                        {
+                            file = new StreamWriter(Path.Combine(FileMapper.workDirectory, p_path + ".txt"));
+                            file.WriteLine("");
+                            file.Close();
+                            file.Dispose();
+                        }
+                        var p2 = new Process();
+                        p2.StartInfo = new ProcessStartInfo(Path.Combine(FileMapper.workDirectory, p_path + ".txt"))
+                        {
+                            UseShellExecute = true
+                        };
+                        p2.Start();
+
+                        if (!File.Exists(Path.Combine(FileMapper.workDirectory, p_path + ".py")))
+                        {
+                            file = new StreamWriter(Path.Combine(FileMapper.workDirectory, p_path + ".py"));
+                            file.WriteLine("");
+                            file.Close();
+                            file.Dispose();
+                        }
+                        var p3 = new Process();
+                        p3.StartInfo = new ProcessStartInfo(Path.Combine(FileMapper.workDirectory, p_path + ".py"))
+                        {
+                            UseShellExecute = true
+                        };
+                        p3.Start();
+                    }
+                    else
+                    {
+                        Console.WriteLine("Configuration not found.");
+                    }
+
+
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
                 throw;
             }
         }
@@ -394,6 +506,10 @@ namespace LaForgeFileMapper
             Console.WriteLine("Initialize mapper:");
             Console.WriteLine(" --init <mapper file name> [mapper file path optional]");
             Console.WriteLine("     --interactive (optional inform values)");
+            Console.WriteLine("");
+
+            Console.WriteLine("Open Mapper Files:");
+            Console.WriteLine(" --open [Mapper name optional]");
             Console.WriteLine("");
 
             Console.WriteLine(" Get current dir:");

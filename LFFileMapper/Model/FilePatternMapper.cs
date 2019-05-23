@@ -13,7 +13,6 @@ namespace LaForgeFileMapper.Model
         public List<FilePatternVariables> Variables { get; set; }
         public string OutputFolder { get; set; }
         public string OutputFileName { get; set; }
-        public string OutputPatern { get; set; }
         public string DirFilter { get; set; }
         public string FileFilter { get; set; }
         public string DirExclude { get; set; }
@@ -62,6 +61,12 @@ namespace LaForgeFileMapper.Model
 
         public string SearchPatern { get; set; }
 
+        public string ExclusionPatern { get; set; }
+
+        public string Script { get; set; }
+
+        public List<FilePatternVariables> Variables { get; set; }
+
         public ESearchLocation SearchLocation { get; set; }
 
     }
@@ -70,8 +75,16 @@ namespace LaForgeFileMapper.Model
     {
         public string Name { get; set; }
 
-        public List<string> Values { get; set; }
-        
+        public List<VariablesResultItem> Values { get; set; }
+
+    }
+
+    public class VariablesResultItem
+    {
+        public string Value { get; set; }
+
+        public List<VariablesResult> Variables { get; set; }
+
     }
 
     public enum ESearchLocation
