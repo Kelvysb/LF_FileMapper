@@ -3,7 +3,7 @@ Customizable file mapper, search values in a source file and create a new file b
 
 Usage:
 
-'''
+```
  --run <mapper file name> [optional directory path]
      --replace (optional replace existing files)
 
@@ -22,7 +22,7 @@ Open Mapper Files:
      
  Help:
      -h or --help
-'''
+```
 
 Mapper File Example:
 This file is used to gather variables from source file, filter directories and files to search and configure the output file name and path, it uses regular expressions fo search content and filter.
