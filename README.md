@@ -3,7 +3,7 @@ Customizable file mapper, search values in a source file and create a new file b
 
 Usage:
 
-Run:
+'''
  --run <mapper file name> [optional directory path]
      --replace (optional replace existing files)
 
@@ -11,15 +11,19 @@ Initialize mapper:
  --init <mapper file name> [mapper file path optional]
      --interactive (optional inform values)
 
-Get current dir:
-  -env or --env
+Open Mapper Files:
+ --open [Mapper name optional]
 
-Program Version:
-  -v or --version
-  
-Help:
-  -h or --help
-  
+ Get current dir:
+     -env or --env
+
+ Program Version:
+     -v or --version
+     
+ Help:
+     -h or --help
+'''
+
 Mapper File Example:
 This file is used to gather variables from source file, filter directories and files to search and configure the output file name and path, it uses regular expressions fo search content and filter.
 
@@ -32,8 +36,6 @@ the "SearchLocation" can be:
 2 - FileDirectory
 
 3 - FilePath
-
-4 - Literal (in this case the value of SearchPatern will be used as literal)
 
 
 the "OutputPatern" points to a .txt contaning the output patern with the variables notation.
