@@ -5,7 +5,7 @@ using System.IO;
 using System.Text;
 
 
-namespace LaForgeFileMapper.Model
+namespace LFFileMapper.Model
 {
     public class FilePatternMapper
     {
@@ -17,6 +17,7 @@ namespace LaForgeFileMapper.Model
         public string FileFilter { get; set; }
         public string DirExclude { get; set; }
         public string FileExclude { get; set; }
+        public string RelativePath { get; set; }
         public void save(string p_path)
         {
             StreamWriter file;

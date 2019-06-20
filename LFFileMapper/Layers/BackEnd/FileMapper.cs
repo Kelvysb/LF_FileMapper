@@ -5,24 +5,30 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
-using LaForgeFileMapper.Model;
 using LFFileMapper.Layers.BackEnd;
+using LFFileMapper.Model;
 
 namespace LaForgeFileMapper.Layers.BackEnd
 {
-    class FileMapper
+    public class FileMapper
     {
 
-        public static RegexOptions regexOptions = RegexOptions.Singleline;
+        private static RegexOptions regexOptions = RegexOptions.Singleline;
         public static string currentDirectory { get; set; }
+        public static string sequenceDirectory { get; set; }
         public static string workDirectory { get; set; }
         private static string directory = "";
         private static string pythonScript = "";
 
+        protected FileMapper()
+        {
+
+        }
+
         public static List<string> MapFiles(string p_mapperFile, string p_directory, bool p_replace)
         {
             List<string> result = new List<string>();
-            List<string> files = new List<string>();
+            List<string> files;
             FilePatternMapper pattern;
             StreamReader inputFile;
 
@@ -36,7 +42,18 @@ namespace LaForgeFileMapper.Layers.BackEnd
                     directory = Path.GetFullPath(Path.Combine(currentDirectory, directory));
                 }
 
+                if (!File.Exists(Path.Combine(workDirectory, p_mapperFile + ".json")) ||
+                    !File.Exists(Path.Combine(workDirectory, p_mapperFile + ".txt")))
+                {
+                    throw new FileNotFoundException("Configuration not found: " + p_mapperFile);
+                }
+
                 pattern = FilePatternMapper.load(Path.Combine(workDirectory, p_mapperFile + ".json"));
+
+                if (!string.IsNullOrEmpty(pattern.RelativePath) && !Path.IsPathRooted(pattern.RelativePath))
+                {
+                    directory = Path.GetFullPath(Path.Combine(directory, pattern.RelativePath));
+                }
 
                 files = getAllFiles(directory, pattern.FileFilter, pattern.DirFilter, pattern.FileExclude, pattern.DirExclude);
 
@@ -57,19 +74,49 @@ namespace LaForgeFileMapper.Layers.BackEnd
             }
         }
 
+        internal static List<string> MapSequence(string p_sequenceFile, string p_directory, bool p_replace)
+        {
+
+            List<string> result = new List<string>();
+            string auxPath;
+            ExecutionSequence sequence;
+
+            if (!File.Exists(Path.Combine(sequenceDirectory, p_sequenceFile + ".json")))
+            {
+                throw new FileNotFoundException("Sequence file not found: " + p_sequenceFile);
+            }
+
+            sequence = ExecutionSequence.load(Path.Combine(sequenceDirectory, p_sequenceFile + ".json"));
+            sequence.Itens.Sort((i1, i2) => i1.Sequence.CompareTo(i2.Sequence));
+
+            sequence.Itens.ForEach((item) =>
+            {
+                if (!string.IsNullOrEmpty(item.RelativePath) && !Path.IsPathRooted(item.RelativePath))
+                {
+                    auxPath = Path.GetFullPath(Path.Combine(p_directory, item.RelativePath));
+                }
+                else
+                {
+                    auxPath = p_directory;
+                }
+                result.AddRange(MapFiles(item.Configuration, auxPath, p_replace));
+            });
+
+            return result;
+        }
+
         private static string ProcessFile(FilePatternMapper pattern, string file, string filePath, bool replace)
         {
             string result = "";
-            List<string> auxOutput = new List<string>();
             StreamWriter outputFile;
             List<VariablesResult> variables;
             string output = "";
-            List<string> loopBlocks = new List<string>();
+            List<string> loopBlocks;
             string loopBlocksGroup = "";
             string outputName = "";
             string outputDir = "";
             StreamReader patternFile;
-            
+
 
             try
             {
@@ -97,7 +144,7 @@ namespace LaForgeFileMapper.Layers.BackEnd
                 patternFile.Dispose();
                 outputName = pattern.OutputFileName;
                 outputDir = pattern.OutputFolder;
-                
+
 
                 //Replace Variables
                 foreach (VariablesResult variablesResult in variables)
@@ -170,7 +217,7 @@ namespace LaForgeFileMapper.Layers.BackEnd
             {
                 if (variable.Values != null && variable.Values.Count > 0)
                 {
-                    if (superVariable.Equals(""))
+                    if (string.IsNullOrEmpty(superVariable))
                     {
                         result = result.Replace("<%" + variable.Name + "%>", variable.Values.First().Value);
                     }
@@ -183,7 +230,7 @@ namespace LaForgeFileMapper.Layers.BackEnd
                     {
                         variable.Values.First().Variables.ForEach(variablesResult =>
                         {
-                            if (superVariable.Equals(""))
+                            if (string.IsNullOrEmpty(superVariable))
                             {
                                 result = processVariable(variablesResult, result, variable.Name);
                             }
@@ -213,7 +260,7 @@ namespace LaForgeFileMapper.Layers.BackEnd
                 {
                     variable.Values.ForEach(value =>
                     {
-                        if (superVariable.Equals(""))
+                        if (string.IsNullOrEmpty(superVariable))
                         {
                             result = result + block.Replace("<!" + variable.Name + "!>", value.Value);
                         }
@@ -226,7 +273,7 @@ namespace LaForgeFileMapper.Layers.BackEnd
                         {
                             value.Variables.ForEach(variablesResult =>
                             {
-                                if (superVariable.Equals(""))
+                                if (string.IsNullOrEmpty(superVariable))
                                 {
                                     result = processBlock(variablesResult, result, variable.Name);
                                 }
@@ -241,9 +288,9 @@ namespace LaForgeFileMapper.Layers.BackEnd
                 }
                 else
                 {
-                    if (superVariable.Equals(""))
+                    if (string.IsNullOrEmpty(superVariable))
                     {
-                        result = result + block.Replace("<!" + variable.Name + "!>", "");                        
+                        result = result + block.Replace("<!" + variable.Name + "!>", "");
                     }
                     else
                     {
@@ -263,14 +310,27 @@ namespace LaForgeFileMapper.Layers.BackEnd
         {
             List<string> result = new List<string>();
             MatchCollection objMatchs;
+            MatchCollection objClosingMatchs;
+            string auxOutput;
+
             try
             {
-                objMatchs = Regex.Matches(output, "(<@" + name + "@>)(.*\\s ?)*(<\\/@" + name + "@>)", regexOptions);
+                objMatchs = Regex.Matches(output, "(<@" + name + "@>)", regexOptions);
                 foreach (Match match in objMatchs)
                 {
+
                     if (match.Success)
                     {
-                        result.Add(match.Value);
+
+                        auxOutput = output.Substring(match.Index);
+
+                        //Find first closing Tag
+                        objClosingMatchs = Regex.Matches(auxOutput, "(</@" + name + "@>)", regexOptions);
+
+                        if (objClosingMatchs.Count > 0 && objClosingMatchs.First().Success)
+                        {
+                            result.Add(auxOutput.Substring(0, objClosingMatchs.First().Index + ("(</@" + name + "@>)").Length));
+                        }
                     }
                 }
                 return result;
@@ -296,25 +356,24 @@ namespace LaForgeFileMapper.Layers.BackEnd
                     foreach (Match match in objMatchs)
                     {
 
-                        if (match.Success && (filePatternVariablese.ExclusionPatern == null
-                                              || filePatternVariablese.ExclusionPatern.Equals("")
-                                              || Regex.Matches(match.Value, @filePatternVariablese.ExclusionPatern).Count == 0))
+                        if (match.Success
+                            && (filePatternVariablese.ExclusionPatern == null
+                            || filePatternVariablese.ExclusionPatern.Equals("")
+                            || Regex.Matches(match.Value, @filePatternVariablese.ExclusionPatern).Count == 0)
+                            && !string.IsNullOrEmpty(match.Value))
                         {
-                            if (!match.Value.Equals(""))
+                            auxValues = new List<string>();
+                            if (filePatternVariablese.Script != null
+                                && !filePatternVariablese.Script.Equals("") &&
+                                PythonInterpreter.ValidatePython(pythonScript) == "")
                             {
-                                auxValues = new List<string>();
-                                if (filePatternVariablese.Script != null
-                                    && !filePatternVariablese.Script.Equals("") &&
-                                    PythonInterpreter.ValidatePython(pythonScript) == "")
-                                {
-                                    auxValues.AddRange(PythonInterpreter.ProcessString(pythonScript, filePatternVariablese.Script, match.Value));
-                                }
-                                else
-                                {
-                                    auxValues.Add(match.Value);
-                                }
-                                result.Last().Values.AddRange(auxValues.Select(value => new VariablesResultItem() { Value = value }));
+                                auxValues.AddRange(PythonInterpreter.ProcessString(pythonScript, filePatternVariablese.Script, match.Value));
                             }
+                            else
+                            {
+                                auxValues.Add(match.Value);
+                            }
+                            result.Last().Values.AddRange(auxValues.Select(value => new VariablesResultItem() { Value = value }));
                         }
                     }
 
@@ -355,12 +414,12 @@ namespace LaForgeFileMapper.Layers.BackEnd
                     directories = auxDirectories.ToList();
                 }
 
-                if (p_dirFilter != null && !p_dirFilter.Equals(""))
+                if (p_dirFilter != null && !string.IsNullOrEmpty(p_dirFilter))
                 {
                     directories.RemoveAll(dir => !Regex.IsMatch(dir, p_dirFilter, regexOptions));
                 }
 
-                if (p_dirExclude != null && !p_dirExclude.Equals(""))
+                if (p_dirExclude != null && !string.IsNullOrEmpty(p_dirExclude))
                 {
                     directories.RemoveAll(dir => Regex.IsMatch(dir, p_dirExclude, regexOptions));
                 }
@@ -377,12 +436,12 @@ namespace LaForgeFileMapper.Layers.BackEnd
                     files = auxFiles.ToList();
                 }
 
-                if (p_filesFilter != null && !p_filesFilter.Equals(""))
+                if (p_filesFilter != null && !string.IsNullOrEmpty(p_filesFilter))
                 {
                     files.RemoveAll(file => !Regex.IsMatch(Path.GetFileName(file), p_filesFilter));
                 }
 
-                if (p_filesExclude != null && !p_filesExclude.Equals(""))
+                if (p_filesExclude != null && !string.IsNullOrEmpty(p_filesExclude))
                 {
                     files.RemoveAll(file => Regex.IsMatch(Path.GetFileName(file), p_filesExclude));
                 }

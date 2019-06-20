@@ -11,6 +11,8 @@
     <Copyright>Kelvys B. 2019</Copyright>
     <PackageTags>File Mapper Converter Pattern Creator</PackageTags>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <Version>2.0.0</Version>
+    <AssemblyVersion>2.0.0.0</AssemblyVersion>
   </PropertyGroup>
 
   <ItemGroup>

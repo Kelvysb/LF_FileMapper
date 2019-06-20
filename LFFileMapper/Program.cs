@@ -6,12 +6,15 @@ using System.Linq;
 using System.Net;
 using System.Reflection;
 using LaForgeFileMapper.Layers.BackEnd;
-using LaForgeFileMapper.Model;
+using LFFileMapper.Model;
 
 namespace LaForgeFileMapper
 {
     class Program
     {
+        protected Program()
+        {
+        }
 
         static void Main(string[] args)
         {
@@ -22,7 +25,7 @@ namespace LaForgeFileMapper
             {
 
                 initializeDirs();
-                List<string> argsList = args.ToList();
+                List<string> argsList;
                 Dictionary<String, String> inputArgs;
                 bool exit = true;
                 input = args;
@@ -45,7 +48,24 @@ namespace LaForgeFileMapper
                                 }
                                 else
                                 {
-                                    throw new Exception("Must inform a mapper file, on --run");
+                                    throw new InvalidOperationException("Must inform a mapper file, on --run");
+                                }
+
+                                if (argsList.Count > argsList.IndexOf(arg) + 2 && !argsList[argsList.IndexOf(arg) + 2].StartsWith("-"))
+                                {
+                                    inputArgs.Add("RUNPATH", argsList[argsList.IndexOf(arg) + 2]);
+                                }
+
+                            }
+                            else if (arg.Equals("--run-seq", StringComparison.InvariantCultureIgnoreCase))
+                            {
+                                if (argsList.Count > argsList.IndexOf(arg) + 1 && !argsList[argsList.IndexOf(arg) + 1].StartsWith("-"))
+                                {
+                                    inputArgs.Add("RUNSEQ", argsList[argsList.IndexOf(arg) + 1]);
+                                }
+                                else
+                                {
+                                    throw new InvalidOperationException("Must inform a sequence file, on --run-seq");
                                 }
 
                                 if (argsList.Count > argsList.IndexOf(arg) + 2 && !argsList[argsList.IndexOf(arg) + 2].StartsWith("-"))
@@ -66,18 +86,31 @@ namespace LaForgeFileMapper
                                 }
                                 else
                                 {
-                                    throw new Exception("Must inform a file name on --init.");
+                                    throw new InvalidOperationException("Must inform a file name on --init.");
                                 }
-
-                                if (argsList.Count > argsList.IndexOf(arg) + 2 && !argsList[argsList.IndexOf(arg) + 2].StartsWith("-"))
+                            }
+                            else if (arg.Equals("--init-seq", StringComparison.InvariantCultureIgnoreCase))
+                            {
+                                if (argsList.Count > argsList.IndexOf(arg) + 1 && !argsList[argsList.IndexOf(arg) + 1].StartsWith("-"))
                                 {
-                                    inputArgs.Add("INITPATH", argsList[argsList.IndexOf(arg) + 2]);
+                                    inputArgs.Add("INITSEQ", argsList[argsList.IndexOf(arg) + 1]);
                                 }
                                 else
                                 {
-                                    inputArgs.Add("INITPATH", FileMapper.workDirectory);
+                                    throw new InvalidOperationException("Must inform a file name on --init.");
                                 }
 
+                            }
+                            else if (arg.Equals("--seq", StringComparison.InvariantCultureIgnoreCase))
+                            {
+                                if (argsList.Count > argsList.IndexOf(arg) + 1 && !argsList[argsList.IndexOf(arg) + 1].StartsWith("-"))
+                                {                                    
+                                    inputArgs.Add("SEQ", String.Join(" ", argsList.GetRange(argsList.IndexOf(arg) + 1, argsList.Count - (argsList.IndexOf(arg) + 1))));
+                                }
+                                else
+                                {
+                                    throw new InvalidOperationException("Must inform the sequence list on --seq.");
+                                }
                             }
                             else if (arg.Equals("--replace", StringComparison.InvariantCultureIgnoreCase))
                             {
@@ -92,6 +125,17 @@ namespace LaForgeFileMapper
                                 else
                                 {
                                     inputArgs.Add("OPEN", "");
+                                }
+                            }
+                            else if (arg.Equals("--open-seq", StringComparison.InvariantCultureIgnoreCase))
+                            {
+                                if (argsList.Count > argsList.IndexOf(arg) + 1 && !argsList[argsList.IndexOf(arg) + 1].StartsWith("-"))
+                                {
+                                    inputArgs.Add("OPENSEQ", argsList[argsList.IndexOf(arg) + 1]);
+                                }
+                                else
+                                {
+                                    inputArgs.Add("OPENSEQ", "");
                                 }
                             }
                             else if (arg.Equals("--help", StringComparison.InvariantCultureIgnoreCase) ||
@@ -119,7 +163,7 @@ namespace LaForgeFileMapper
                             }
                             else
                             {
-                                throw new Exception("Invalid command use -h or --help to a list of valid commands.");
+                                throw new InvalidOperationException("Invalid command use -h or --help to a list of valid commands.");
                             }
                         }
                     }
@@ -132,7 +176,8 @@ namespace LaForgeFileMapper
                         {
                             exit = false;
                         }
-                        else if (inputArgs.ContainsKey("INIT"))
+
+                        if (inputArgs.ContainsKey("INIT"))
                         {
                             if (inputArgs.ContainsKey("INTERACTIVE"))
                             {
@@ -143,13 +188,25 @@ namespace LaForgeFileMapper
                                 initFile(inputArgs);
                             }
                         }
+                        else if (inputArgs.ContainsKey("INITSEQ"))
+                        {
+                            if (!inputArgs.ContainsKey("SEQ"))
+                            {
+                                throw new InvalidOperationException("Must inform the sequence list on --init-seq, use --seq.");
+                            }
+                            initSeq(inputArgs);
+                        }
                         else if (inputArgs.ContainsKey("RUN"))
                         {
                             execute(inputArgs);
                         }
+                        else if (inputArgs.ContainsKey("RUNSEQ"))
+                        {
+                            executeSeq(inputArgs);
+                        }
                         else if (inputArgs.ContainsKey("VERSION"))
                         {
-                            Console.WriteLine("CheckTestFiles version: " + Assembly.GetEntryAssembly().GetName().Version);
+                            Console.WriteLine("LFFileMapper version: " + Assembly.GetEntryAssembly().GetName().Version);
                         }
                         else if (inputArgs.ContainsKey("ENV"))
                         {
@@ -158,6 +215,10 @@ namespace LaForgeFileMapper
                         else if (inputArgs.ContainsKey("OPEN"))
                         {
                             OpenFiles(inputArgs.GetValueOrDefault("OPEN"));
+                        }
+                        else if (inputArgs.ContainsKey("OPENSEQ"))
+                        {
+                            OpenSeq(inputArgs.GetValueOrDefault("OPENSEQ"));
                         }
                         else if (inputArgs.ContainsKey("HELP"))
                         {
@@ -194,6 +255,33 @@ namespace LaForgeFileMapper
 
         }
 
+ 
+
+        private static void executeSeq(Dictionary<string, string> inputArgs)
+        {
+            List<string> result;
+            try
+            {
+
+                if (!inputArgs.ContainsKey("RUNPATH"))
+                {
+                    inputArgs.Add("RUNPATH", FileMapper.currentDirectory);
+                }
+
+                result = FileMapper.MapSequence(inputArgs.GetValueOrDefault("RUNSEQ"), inputArgs.GetValueOrDefault("RUNPATH"), inputArgs.ContainsKey("REPLACE"));
+
+                foreach (string item in result)
+                {
+                    Console.WriteLine(item);
+                }
+
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+            }
+        }
+
         private static void execute(Dictionary<string, string> inputArgs)
         {
             List<string> result;
@@ -216,7 +304,6 @@ namespace LaForgeFileMapper
             catch (Exception e)
             {
                 Console.WriteLine(e);
-                throw;
             }
         }
 
@@ -229,20 +316,11 @@ namespace LaForgeFileMapper
             string pythonFileName = "";
             try
             {
-
-                if (!Path.IsPathRooted(inputArgs.GetValueOrDefault("INITPATH")))
-                {
-                    mapperFileName = Path.GetFullPath(Path.Combine(FileMapper.currentDirectory, inputArgs.GetValueOrDefault("INITPATH"), inputArgs.GetValueOrDefault("INIT") + ".json"));
-                    patternFileName = Path.GetFullPath(Path.Combine(FileMapper.currentDirectory, inputArgs.GetValueOrDefault("INITPATH"), inputArgs.GetValueOrDefault("INIT") + ".txt"));
-                    pythonFileName = Path.GetFullPath(Path.Combine(FileMapper.currentDirectory, inputArgs.GetValueOrDefault("INITPATH"), inputArgs.GetValueOrDefault("INIT") + ".py"));
-                }
-                else
-                {
-                    mapperFileName = Path.Combine(inputArgs.GetValueOrDefault("INITPATH"), inputArgs.GetValueOrDefault("INIT") + ".json");
-                    patternFileName = Path.Combine(inputArgs.GetValueOrDefault("INITPATH"), inputArgs.GetValueOrDefault("INIT") + ".txt");
-                    pythonFileName = Path.Combine(inputArgs.GetValueOrDefault("INITPATH"), inputArgs.GetValueOrDefault("INIT") + ".py");
-                }
-
+      
+                mapperFileName = Path.GetFullPath(Path.Combine(FileMapper.workDirectory, inputArgs.GetValueOrDefault("INIT") + ".json"));
+                patternFileName = Path.GetFullPath(Path.Combine(FileMapper.workDirectory, inputArgs.GetValueOrDefault("INIT") + ".txt"));
+                pythonFileName = Path.GetFullPath(Path.Combine(FileMapper.workDirectory, inputArgs.GetValueOrDefault("INIT") + ".py"));
+               
                 file = new FilePatternMapper()
                 {
                     Name = inputArgs.GetValueOrDefault("INIT"),
@@ -293,9 +371,9 @@ namespace LaForgeFileMapper
                 }
 
             }
-            catch (Exception)
+            catch (Exception e)
             {
-                throw;
+                Console.WriteLine(e);
             }
         }
 
@@ -312,20 +390,9 @@ namespace LaForgeFileMapper
             try
             {
 
-                if (!Path.IsPathRooted(inputArgs.GetValueOrDefault("INITPATH")))
-                {
-                    mapperFileName = Path.GetFullPath(Path.Combine(FileMapper.currentDirectory, inputArgs.GetValueOrDefault("INITPATH"), inputArgs.GetValueOrDefault("INIT") + ".json"));
-                    patternFileName = Path.GetFullPath(Path.Combine(FileMapper.currentDirectory, inputArgs.GetValueOrDefault("INITPATH"), inputArgs.GetValueOrDefault("INIT") + ".txt"));
-                    pythonFileName = Path.GetFullPath(Path.Combine(FileMapper.currentDirectory, inputArgs.GetValueOrDefault("INITPATH"), inputArgs.GetValueOrDefault("INIT") + ".py"));
-
-                }
-                else
-                {
-                    mapperFileName = Path.Combine(inputArgs.GetValueOrDefault("INITPATH"), inputArgs.GetValueOrDefault("INIT") + ".json");
-                    patternFileName = Path.Combine(inputArgs.GetValueOrDefault("INITPATH"), inputArgs.GetValueOrDefault("INIT") + ".txt");
-                    pythonFileName = Path.Combine(inputArgs.GetValueOrDefault("INITPATH"), inputArgs.GetValueOrDefault("INIT") + ".py");
-
-                }
+                mapperFileName = Path.GetFullPath(Path.Combine(FileMapper.workDirectory, inputArgs.GetValueOrDefault("INIT") + ".json"));
+                patternFileName = Path.GetFullPath(Path.Combine(FileMapper.workDirectory, inputArgs.GetValueOrDefault("INIT") + ".txt"));
+                pythonFileName = Path.GetFullPath(Path.Combine(FileMapper.workDirectory, inputArgs.GetValueOrDefault("INIT") + ".py"));
 
                 file = new FilePatternMapper()
                 {
@@ -358,8 +425,7 @@ namespace LaForgeFileMapper
                         file.Variables.Last().Name = Console.ReadLine();
 
                         Console.WriteLine("Search location (0 - content, 1 - File name, 2 - File Directory, 3 - File Path, 4 - Literal):");
-
-                        auxSearchLocation = 0;
+                        
                         if (int.TryParse(Console.ReadLine(), out auxSearchLocation))
                         {
                             file.Variables.Last().SearchLocation = (ESearchLocation)auxSearchLocation;
@@ -419,9 +485,53 @@ namespace LaForgeFileMapper
                 }
 
             }
-            catch (Exception)
+            catch (Exception e)
             {
-                throw;
+                Console.WriteLine(e);
+            }
+        }
+
+        private static void initSeq(Dictionary<string, string> inputArgs)
+        {
+            ExecutionSequence file;
+            string sequenceFileName = "";
+            List<string> mappersFilesNames;
+            
+
+            try
+            {
+
+                sequenceFileName = Path.GetFullPath(Path.Combine(FileMapper.sequenceDirectory, inputArgs.GetValueOrDefault("INITSEQ") + ".json"));
+                mappersFilesNames = inputArgs.GetValueOrDefault("SEQ").Split(" ").ToList();
+
+                file = new ExecutionSequence()
+                {
+                    Name = inputArgs.GetValueOrDefault("INITSEQ"),                   
+                    Itens = (from item in mappersFilesNames
+                             select new ExecutionItem() {
+                                 Sequence = mappersFilesNames.IndexOf(item) + 1,
+                                 Configuration = item}
+                             ).ToList()
+                };
+
+                file.save(sequenceFileName);               
+                Console.WriteLine("Saved: " + inputArgs.GetValueOrDefault("INITSEQ"));
+
+                Console.WriteLine("Do you want to open the generated file? (y or n)");
+                if (Console.ReadLine().Equals("Y", StringComparison.InvariantCultureIgnoreCase))
+                {
+                    var p1 = new Process();
+                    p1.StartInfo = new ProcessStartInfo(@sequenceFileName)
+                    {
+                        UseShellExecute = true
+                    };
+                    p1.Start();
+                }
+
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
             }
         }
 
@@ -431,7 +541,7 @@ namespace LaForgeFileMapper
 
             try
             {
-                if (p_path.Equals(""))
+                if (string.IsNullOrEmpty(p_path))
                 {
                     var p0 = new Process();
                     p0.StartInfo = new ProcessStartInfo(FileMapper.workDirectory)
@@ -492,7 +602,45 @@ namespace LaForgeFileMapper
             catch (Exception e)
             {
                 Console.WriteLine(e);
-                throw;
+            }
+        }
+
+        private static void OpenSeq(string p_path)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(p_path))
+                {
+                    var p0 = new Process();
+                    p0.StartInfo = new ProcessStartInfo(FileMapper.sequenceDirectory)
+                    {
+                        UseShellExecute = true
+                    };
+                    p0.Start();
+                }
+                else
+                {
+
+                    if (File.Exists(Path.Combine(FileMapper.sequenceDirectory, p_path + ".json")))
+                    {
+                        var p1 = new Process();
+                        p1.StartInfo = new ProcessStartInfo(Path.Combine(FileMapper.sequenceDirectory, p_path + ".json"))
+                        {
+                            UseShellExecute = true
+                        };
+                        p1.Start();
+                    }
+                    else
+                    {
+                        Console.WriteLine("Sequence file not found.");
+                    }
+
+
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
             }
         }
 
@@ -503,13 +651,27 @@ namespace LaForgeFileMapper
             Console.WriteLine("     --replace (optional replace existing files)");
             Console.WriteLine("");
 
+            Console.WriteLine("Run Sequence:");
+            Console.WriteLine(" --run-seq <sequence file name> [optional directory path]");
+            Console.WriteLine("     --replace (optional replace existing files)");
+            Console.WriteLine("");
+
             Console.WriteLine("Initialize mapper:");
-            Console.WriteLine(" --init <mapper file name> [mapper file path optional]");
+            Console.WriteLine(" --init <mapper file name>");
             Console.WriteLine("     --interactive (optional inform values)");
+            Console.WriteLine("");
+
+            Console.WriteLine("Initialize sequence:");
+            Console.WriteLine(" --init-seq <sequence file name> ");
+            Console.WriteLine("     --seq [Mappers List (Space separated)]");
             Console.WriteLine("");
 
             Console.WriteLine("Open Mapper Files:");
             Console.WriteLine(" --open [Mapper name optional]");
+            Console.WriteLine("");
+
+            Console.WriteLine("Open Sequence Files:");
+            Console.WriteLine(" --open-seq [Sequence name optional]");
             Console.WriteLine("");
 
             Console.WriteLine(" Get current dir:");
@@ -533,6 +695,11 @@ namespace LaForgeFileMapper
             }
             FileMapper.currentDirectory = Environment.CurrentDirectory;
             FileMapper.workDirectory = auxPath;
+            FileMapper.sequenceDirectory = Path.Combine(auxPath, "seqs");
+            if (!Directory.Exists(FileMapper.sequenceDirectory))
+            {
+                Directory.CreateDirectory(FileMapper.sequenceDirectory);
+            }
         }
     }
 }
