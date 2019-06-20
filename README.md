@@ -4,22 +4,33 @@ Customizable file mapper, search values in a source file and create a new file b
 Usage:
 
 ```
+Run:
  --run <mapper file name> [optional directory path]
      --replace (optional replace existing files)
 
+Run Sequence:
+ --run-seq <sequence file name> [optional directory path]
+     --replace (optional replace existing files)
+
 Initialize mapper:
- --init <mapper file name> [mapper file path optional]
+ --init <mapper file name>
      --interactive (optional inform values)
+
+Initialize sequence:
+ --init-seq <sequence file name>
+     --seq [Mappers List (Space separated)]
 
 Open Mapper Files:
  --open [Mapper name optional]
+
+Open Sequence Files:
+ --open-seq [Sequence name optional]
 
  Get current dir:
      -env or --env
 
  Program Version:
      -v or --version
-     
  Help:
      -h or --help
 ```
@@ -75,6 +86,8 @@ Variables can be used like this:
 
 <!name!> = value of current item in loop
 
+<!name.subVariable!> = value of sub-variables in current item in loop
+
 </@name@> = repeat for each match of variable in source file (end of block)
 
 
@@ -84,7 +97,7 @@ class <%class%>
     <@method@> //This block will repeat for each occourence of a pattern on source file.
     private void <!method!>(string arg)
     {
-    
+      <!method.variable!>
     }
     </@method@>
 }
